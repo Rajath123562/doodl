@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./worker/auth.ts","./worker/word-engine.ts","./shared/game-types.ts","./shared/protocol.ts","./shared/rules.ts","./shared/schemas.ts","./tests/unit/scoring.test.ts","./vite.config.ts","./vitest.config.ts"],"version":"5.9.3"}

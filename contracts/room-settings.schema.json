@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/doodl/room-settings.v1.json",
+  "title": "DOODL room settings v1 (cross-field strict schema)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "visibility",
+    "maxPlayers",
+    "cyclesPerPlayer",
+    "drawSeconds",
+    "gameMode",
+    "wordPack"
+  ],
+  "properties": {
+    "visibility": {
+      "enum": [
+        "private",
+        "public"
+      ]
+    },
+    "maxPlayers": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 12
+    },
+    "cyclesPerPlayer": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "drawSeconds": {
+      "type": "integer"
+    },
+    "gameMode": {
+      "enum": [
+        "classic",
+        "blitz",
+        "duels",
+        "chaos",
+        "teams"
+      ]
+    },
+    "wordPack": {
+      "type": "string",
+      "enum": [
+        "everyday",
+        "animals",
+        "food",
+        "places",
+        "objects",
+        "nature",
+        "sports",
+        "science",
+        "custom"
+      ]
+    },
+    "passwordProtected": {
+      "type": "boolean",
+      "default": false
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "en",
+        "hi",
+        "kn"
+      ],
+      "default": "en"
+    },
+    "allowSpectators": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "gameMode": {
+            "const": "blitz"
+          }
+        },
+        "required": [
+          "gameMode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "drawSeconds": {
+            "enum": [
+              20,
+              30,
+              45
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "gameMode": {
+            "enum": [
+              "classic",
+              "duels",
+              "chaos",
+              "teams"
+            ]
+          }
+        },
+        "required": [
+          "gameMode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "drawSeconds": {
+            "enum": [
+              60,
+              75,
+              90,
+              120
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "visibility": {
+            "const": "public"
+          }
+        },
+        "required": [
+          "visibility"
+        ]
+      },
+      "then": {
+        "properties": {
+          "wordPack": {
+            "not": {
+              "const": "custom"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+@import './tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: var(--doodl-font);
+  background-color: var(--doodl-bg);
+  color: var(--doodl-ink);
+  overflow-x: hidden;
+}
+
+/* Accessible focus ring */
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 3px solid #8cd9ff;
+  outline-offset: 3px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

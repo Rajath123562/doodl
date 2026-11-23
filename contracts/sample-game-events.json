@@ -1,0 +1,8 @@
+{
+  "description": "Illustrative event shapes; not a real multiplayer session",
+  "clientGuess": {"v":1,"type":"guess.submit","clientEventId":"fe7aab0e-1c83-4ea4-92a4-844afde67de2","matchId":"m_102","turnId":"t_013","payload":{"guess":"bicycle"}},
+  "clientChat": {"v":1,"type":"chat.send","clientEventId":"fe7aab0e-1c83-4ea4-92a4-844afde67de3","matchId":"m_102","turnId":"t_013","payload":{"text":"Nice drawing!"}},
+  "serverCorrectPrivate": {"v":1,"type":"guess.privateFeedback","seq":183,"stateVersion":55,"payload":{"status":"CORRECT","awardedPoints":350}},
+  "serverCorrectPublic": {"v":1,"type":"guess.publicCorrect","seq":184,"stateVersion":55,"payload":{"nickname":"Artist","seatId":"seat_2"}},
+  "serverError": {"v":1,"type":"error","code":"NOT_DRAWER","message":"It's not your turn to draw.","retryable":false}
+}

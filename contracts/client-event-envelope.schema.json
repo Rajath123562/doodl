@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/doodl/client-event-envelope.v1.json",
+  "title": "DOODL client WebSocket intent envelope v1 (structural only)",
+  "description": "The spec in docs/08_API_AND_WS_ENDPOINT_CONTRACT.md is canonical. Per-event strict runtime Zod schemas, authorization and limits are mandatory: this envelope alone never authorizes an action. Never trust claimed identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "type",
+    "clientEventId",
+    "payload"
+  ],
+  "properties": {
+    "v": {
+      "const": 1
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "room.setSettings",
+        "room.start",
+        "room.kick",
+        "room.mute",
+        "room.transferHost",
+        "room.playAgain",
+        "room.leave",
+        "word.select",
+        "stroke.begin",
+        "stroke.append",
+        "stroke.end",
+        "draw.undo",
+        "draw.redo",
+        "draw.clear",
+        "guess.submit",
+        "chat.send",
+        "reaction.send",
+        "round.hintRequest",
+        "sync.request",
+        "duel.guess",
+        "team.assign"
+      ]
+    },
+    "clientEventId": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 96,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "matchId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 96
+    },
+    "turnId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 96
+    },
+    "payload": {
+      "type": "object",
+      "maxProperties": 20
+    }
+  }
+}

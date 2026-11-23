@@ -1,0 +1,5 @@
+# Phase 12 — Independent production-readiness audit
+
+Pretend you did not build the app. Review every line of `checklists/FEATURE_ACCEPTANCE.md`, `checklists/PRODUCTION_SIGNOFF.md` and `docs/20_DEFINITION_OF_DONE_AND_TRACEABILITY.md`; compare real source/test evidence. Inspect bundle for mock/demo data, hard-coded scores, no-op buttons, console secrets, debug endpoints and disabled controls masquerading as live. Run all npm scripts, raw WS auth attacks, two-context E2E, full room, mobile visual and accessibility tests, network interruption and smoke on staging.
+
+Report each criterion as PASS/FAIL/NOT_RUN/NOT_APPLICABLE with evidence and commit. Count critical/high/medium defects, publish release scope and support/rollback ownership. Final outcome one of: `GO_P0_PRIVATE_BETA`, `GO_P1_PUBLIC_BETA`, `GO_P2_FULL_RELEASE`, `NO_GO`. **Do not say production ready for the full specification unless P0/P1/P2 criteria and operations signoff truly pass.** Require user confirmation before public launch.

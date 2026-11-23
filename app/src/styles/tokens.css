@@ -1,0 +1,16 @@
+:root {
+  --doodl-bg: #f7f5f0;
+  --doodl-surface: #ffffff;
+  --doodl-ink: #1f2330;
+  --doodl-soft: #707687;
+  --doodl-line: #e9e8e3;
+  --doodl-orange: #fd7259;
+  --doodl-orange-dark: #dc5b46;
+  --doodl-mint: #bdf3d5;
+  --doodl-purple: #e8ddff;
+  --doodl-yellow: #fff0b6;
+  --doodl-shadow: 0 18px 65px rgba(34, 32, 30, 0.06);
+  --doodl-radius: 22px;
+  --doodl-font: 'DM Sans', system-ui, sans-serif;
+  --doodl-head: 'Outfit', 'DM Sans', system-ui, sans-serif;
+}
