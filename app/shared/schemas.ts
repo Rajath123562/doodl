@@ -101,6 +101,9 @@ export const GuestSessionSchema = z.object({
 
 export const CreateRoomSchema = z.object({
   settings: RoomSettingsSchema,
+  hostNickname: z.string().trim().min(2).max(20).optional(),
+  avatarFace: z.number().int().min(0).max(5).optional(),
+  avatarColor: z.string().optional(),
 });
 
 export const JoinRoomSchema = z.object({

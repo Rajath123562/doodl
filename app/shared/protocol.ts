@@ -12,6 +12,8 @@ import type {
   ChaosModifier,
 } from './game-types';
 
+export type { ClientIntent };
+
 export interface ClientEnvelope<T = unknown> {
   v: 1;
   type: ClientIntent;
@@ -32,6 +34,7 @@ export type ServerEventType =
   | 'turn.wordChoices'
   | 'turn.started'
   | 'turn.hint'
+  | 'round.hintRevealed'
   | 'turn.timerSync'
   | 'drawing.ops'
   | 'draw.cleared'
@@ -82,6 +85,7 @@ export interface WordChoicesPayload {
 }
 
 export interface TurnStartedPayload {
+  phase?: import('./game-types').RoomPhase;
   turnId: string;
   roundNumber: number;
   totalRounds: number;
@@ -133,6 +137,7 @@ export interface TurnRevealPayload {
   turnId: string;
   secretWord: string;
   result: TurnResult;
+  reason?: 'TIMEOUT' | 'ALL_GUESSED' | 'DRAWER_DISCONNECT';
 }
 
 export interface RoundResultsPayload {
