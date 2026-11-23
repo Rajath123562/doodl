@@ -19,6 +19,7 @@ import { Gallery } from './pages/Gallery';
 import { Profile } from './pages/Profile';
 import { Rules } from './pages/Rules';
 import { Avatar } from './components/Avatar';
+import { PlayWithFriendsModal } from './components/PlayWithFriendsModal';
 import { DoodlWebSocket } from './networking/ws';
 import { requestJoinGrant } from './networking/api';
 import { CanvasEngine } from './drawing/renderer';
@@ -36,6 +37,16 @@ export default function App() {
   const [mySeatId, setMySeatId] = useState<string>('');
   const [myRole, setMyRole] = useState<'host' | 'player' | 'spectator'>('player');
   const [snapshot, setSnapshot] = useState<PublicRoomSnapshot | null>(null);
+  const [showPlayWithFriendsModal, setShowPlayWithFriendsModal] = useState<boolean>(false);
+
+  // Check URL query parameters on initial load (e.g. ?join=ABCD1234)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const joinCode = params.get('join');
+    if (joinCode && !roomCode) {
+      setShowPlayWithFriendsModal(true);
+    }
+  }, []);
 
   const [drawerCandidates, setDrawerCandidates] = useState<WordCandidate[]>([]);
   const [drawerSecretWord, setDrawerSecretWord] = useState<string>('');
@@ -264,16 +275,26 @@ export default function App() {
           </button>
           <button
             onClick={() => {
-              if (roomCode) setCurrentRoute(snapshot?.phase === 'LOBBY' ? 'lobby' : 'game');
-              else setCurrentRoute('home');
+              if (roomCode) {
+                setCurrentRoute(snapshot?.phase === 'LOBBY' ? 'lobby' : 'game');
+              } else {
+                setShowPlayWithFriendsModal(true);
+              }
             }}
-            className={`px-4 py-2 rounded-full font-bold text-xs transition-colors ${
-              currentRoute === 'lobby' || currentRoute === 'game'
+            className={`px-4 py-2 rounded-full font-bold text-xs transition-colors flex items-center gap-1.5 ${
+              currentRoute === 'lobby' || currentRoute === 'game' || showPlayWithFriendsModal
                 ? 'bg-white text-[#252a34] shadow-sm'
                 : 'text-[#7a7d86] hover:text-[#252a34]'
             }`}
           >
-            {roomCode ? `Room: ${roomCode}` : 'Play with Friends'}
+            {roomCode ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-[#3bbc77] animate-pulse" />
+                <span>Room: {roomCode}</span>
+              </>
+            ) : (
+              'Play with Friends'
+            )}
           </button>
           <button
             onClick={() => setCurrentRoute('daily')}
@@ -413,6 +434,22 @@ export default function App() {
         )}
         {currentRoute === 'rules' && <Rules onNavigate={(r) => setCurrentRoute(r as any)} />}
       </main>
+
+      {showPlayWithFriendsModal && (
+        <PlayWithFriendsModal
+          nickname={nickname}
+          avatarFace={avatarFace}
+          avatarColor={avatarColor}
+          onNicknameChange={setNickname}
+          onAvatarFaceChange={setAvatarFace}
+          onAvatarColorChange={setAvatarColor}
+          onEnterRoom={(code, seatId, role) => {
+            handleEnterRoom(code, seatId, role);
+            setShowPlayWithFriendsModal(false);
+          }}
+          onClose={() => setShowPlayWithFriendsModal(false)}
+        />
+      )}
     </div>
   );
 }

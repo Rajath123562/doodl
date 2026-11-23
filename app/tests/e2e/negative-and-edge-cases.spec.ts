@@ -122,4 +122,40 @@ test.describe('Negative & Security Edge Cases (P0-001, P0-004, P0-006, P0-019, P
     await p2Context.close();
     await p3Context.close();
   });
+
+  test('play with friends navigation modal opens, switches tabs, and creates party (P0-001, P0-002)', async ({ page }) => {
+    await page.goto('/');
+
+    // 1. Locate the "Play with Friends" navigation tab
+    const playNavBtn = page.getByRole('button', { name: 'Play with Friends' });
+    await expect(playNavBtn).toBeVisible();
+
+    // 2. Click "Play with Friends"
+    await playNavBtn.click();
+
+    // 3. Modal must open with "Play with Friends" heading
+    const modalHeading = page.getByRole('heading', { name: 'Play with Friends' });
+    await expect(modalHeading).toBeVisible();
+
+    // 4. Verify tabs: "Create Private Party" & "Join with Code"
+    const joinTab = page.getByRole('button', { name: 'Join with Code' });
+    const createTab = page.getByRole('button', { name: 'Create Private Party' });
+    await expect(joinTab).toBeVisible();
+    await expect(createTab).toBeVisible();
+
+    // 5. Switch to "Join with Code" tab
+    await joinTab.click();
+    await expect(page.getByPlaceholder('e.g. 868A50B4')).toBeVisible();
+
+    // 6. Switch back to "Create Private Party" tab
+    await createTab.click();
+    await expect(page.getByRole('button', { name: /Create Room & Get Invite Link/i })).toBeVisible();
+
+    // 7. Click "Create Room & Get Invite Link"
+    await page.getByRole('button', { name: /Create Room & Get Invite Link/i }).click();
+
+    // 8. Must transition into the Game Lobby
+    await expect(page.getByRole('heading', { name: 'Game Lobby' })).toBeVisible({ timeout: 8000 });
+    await expect(page.getByRole('button', { name: /Room: /i })).toBeVisible();
+  });
 });
