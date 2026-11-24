@@ -88,13 +88,13 @@ test.describe('Real 2-Browser Multiplayer Match Verification (P0-001, P0-002, P0
     // 7. Transition to DRAWING phase (P0-010, P0-011)
     // Host HUD displays secret word
     const hostHUD = hostPage.getByTestId('hud-word');
-    await expect(hostHUD).toContainText(chosenWord!, { timeout: 10000 });
+    await expect(hostHUD).toContainText(chosenWord!, { timeout: 10000, ignoreCase: true });
 
     // Guest HUD displays masked word (never plaintext word!)
     const guestHUD = guestPage.getByTestId('hud-word');
     await expect(guestHUD).toBeVisible({ timeout: 10000 });
     const guestMasked = await guestHUD.textContent();
-    expect(guestMasked).not.toContain(chosenWord!);
+    expect(guestMasked?.toLowerCase()).not.toContain(chosenWord!.toLowerCase());
     expect(guestMasked).toContain('_');
 
     // 8. Host draws on canvas with mouse pointer (P0-010, P0-011)

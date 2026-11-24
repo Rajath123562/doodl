@@ -52,7 +52,7 @@ export const WordChoiceOverlay: React.FC<WordChoiceOverlayProps> = ({
               onClick={() => onSelectWord(c.id)}
               className="py-3 px-2 sm:py-4 sm:px-3 rounded-xl sm:rounded-2xl bg-[#faf9f6] border-2 border-[#ebe7e3] font-bold text-xs sm:text-sm text-[#1f2330] hover:bg-[#fff1ed] hover:border-[#fd7259] active:scale-95 transition-all shadow-sm flex flex-col items-center justify-center text-center break-words min-h-[52px] sm:min-h-[64px]"
             >
-              <span className="capitalize">{c.word.toLowerCase()}</span>
+              <span>{c.word}</span>
             </button>
           ))}
         </div>
