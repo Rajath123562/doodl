@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Typecheck, Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'app/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Run TypeScript Typecheck
+        working-directory: app
+        run: npm run typecheck
+
+      - name: Build Production Bundle
+        working-directory: app
+        run: npm run build
+
+      - name: Run Vitest Unit & Integration Suites
+        working-directory: app
+        run: npm test
+
+      - name: Install Playwright Chromium
+        working-directory: app
+        run: npx playwright install --with-deps chromium
+
+      - name: Start Local Worker Dev Server
+        working-directory: app
+        run: |
+          npx wrangler dev --port 8787 --ip 127.0.0.1 &
+          sleep 5
+
+      - name: Run Playwright Multi-Browser E2E Tests
+        working-directory: app
+        run: npm run test:e2e

@@ -8,7 +8,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers%20%26%20Durable%20Objects-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
-[![Tests](https://img.shields.io/badge/Tests-41%20Passed-brightgreen?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com)
+[![Tests](https://img.shields.io/badge/Tests-41%20Passed-brightgreen?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/Rajath123562/doodl)
+[![CI](https://github.com/Rajath123562/doodl/actions/workflows/ci.yml/badge.svg)](https://github.com/Rajath123562/doodl/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 <br/>
