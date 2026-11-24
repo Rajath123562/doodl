@@ -17,6 +17,37 @@
 
 [🎮 Play Live Demo](https://doodl.rajath-raj2569.workers.dev) · [📖 Architecture Guide](docs/ARCHITECTURE.md) · [🧪 QA & Certification Suite](docs/QA/FINAL_PRODUCTION_CERTIFICATION.md)
 
+<br/><br/>
+
+https://github.com/Rajath123562/doodl/raw/main/docs/assets/doodl-demo.webm
+
+<p align="center">
+  <img src="docs/assets/doodl-drawing-match.png" alt="DOODL Live Real-Time Multiplayer Gameplay" width="100%" />
+</p>
+
+</div>
+
+---
+
+## 📸 Visual Showcase
+
+<div align="center">
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <b>🎉 Play with Friends Launcher</b><br/><br/>
+      <img src="docs/assets/doodl-party-launcher.png" alt="Party Launcher Modal" width="100%"/>
+    </td>
+    <td width="33%" align="center">
+      <b>👥 Real-Time Room Lobby</b><br/><br/>
+      <img src="docs/assets/doodl-lobby.png" alt="Multiplayer Lobby" width="100%"/>
+    </td>
+    <td width="33%" align="center">
+      <b>🎨 Live Vector Drawing & Guessing</b><br/><br/>
+      <img src="docs/assets/doodl-drawing-match.png" alt="Live Match Drawing" width="100%"/>
+    </td>
+  </tr>
+</table>
 </div>
 
 ---
