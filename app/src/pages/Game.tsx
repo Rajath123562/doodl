@@ -14,7 +14,7 @@ import type {
 import { CanvasEngine } from '../drawing/renderer';
 import { GameHUD } from '../components/GameHUD';
 import { PlayerSidebar } from '../components/PlayerSidebar';
-import { GuessChat } from '../components/GuessChat';
+import { GuessChat, GuessComposer } from '../components/GuessChat';
 import { DrawingToolbar } from '../components/DrawingToolbar';
 import { WordChoiceOverlay } from '../components/WordChoiceOverlay';
 import { MatchResultsModal } from '../components/MatchResultsModal';
@@ -184,14 +184,20 @@ export const Game: React.FC<GameProps> = ({
         <div className="col-span-1 lg:order-3 h-[210px] sm:h-[250px] lg:h-full min-h-0">
           <GuessChat
             messages={chatMessages}
-            onSendMessage={onSendGuess}
-            onSendChat={onSendChat}
-            disabled={phase !== 'DRAWING'}
             hasGuessed={hasGuessed}
             isDrawer={isDrawer}
           />
         </div>
       </div>
+
+      {/* Accessible Full-Width Guess & Chat Composer spanning available width below arena */}
+      <GuessComposer
+        onSendMessage={onSendGuess}
+        onSendChat={onSendChat}
+        disabled={phase !== 'DRAWING'}
+        hasGuessed={hasGuessed}
+        isDrawer={isDrawer}
+      />
 
       {/* Match Results Modal */}
       {phase === 'MATCH_RESULTS' && (
