@@ -60,7 +60,7 @@ test.describe('Real 2-Browser Multiplayer Match Verification (P0-001, P0-002, P0
     // Host sees Bob in the roster
     await expect(hostPage.getByRole('main').getByText('BobGuesser')).toBeVisible({ timeout: 5000 });
     await expect(hostPage.getByText('Connected Players (2 /')).toBeVisible();
-    await expect(hostPage.getByText('✓ Ready to play!')).toBeVisible();
+    await expect(hostPage.getByText(/✓ Ready to play/i)).toBeVisible();
 
     // Guest sees Alice in the roster
     await expect(guestPage.getByRole('main').getByText('AliceHost')).toBeVisible({ timeout: 5000 });
