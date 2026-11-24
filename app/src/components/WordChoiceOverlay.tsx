@@ -29,28 +29,29 @@ export const WordChoiceOverlay: React.FC<WordChoiceOverlayProps> = ({
   }, [expiresAtMs]);
 
   return (
-    <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in">
-      <div className="bg-white rounded-3xl border border-[#eee9e2] shadow-2xl p-8 max-w-md w-full text-center space-y-4">
-        <div className="text-xs font-black uppercase tracking-widest text-[#fd7259]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#eee9e2] shadow-2xl p-4 sm:p-6 max-w-sm sm:max-w-md w-full text-center space-y-3 sm:space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#fd7259]">
           YOUR TURN TO DRAW
         </div>
-        <h2 className="font-head font-extrabold text-3xl tracking-tight text-[#1f2330]">
+        <h2 className="font-head font-extrabold text-xl sm:text-2xl tracking-tight text-[#1f2330]">
           Choose Your Word!
         </h2>
-        <p className="text-xs text-[#8e909d]">
+        <p className="text-[11px] sm:text-xs text-[#8e909d]">
           Pick one of the three candidate words below. Auto-select in{' '}
-          <strong className="text-[#fd7259] font-head text-sm">{countdown}s</strong>
+          <strong className="text-[#fd7259] font-head text-sm sm:text-base">{countdown}s</strong>
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
+        {/* 3 Candidate Words: Side-by-side on all screens so all 3 words are 100% visible */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-1 sm:pt-2">
           {candidates.map((c) => (
             <button
               key={c.id}
               type="button"
               onClick={() => onSelectWord(c.id)}
-              className="p-4 rounded-2xl bg-[#faf9f6] border border-[#ebe7e3] font-bold text-sm text-[#1f2330] hover:bg-[#fff1ed] hover:border-[#fd7259] hover:-translate-y-0.5 active:translate-y-0 transition-all shadow-sm"
+              className="py-3 px-2 sm:py-4 sm:px-3 rounded-xl sm:rounded-2xl bg-[#faf9f6] border-2 border-[#ebe7e3] font-bold text-xs sm:text-sm text-[#1f2330] hover:bg-[#fff1ed] hover:border-[#fd7259] active:scale-95 transition-all shadow-sm flex flex-col items-center justify-center text-center break-words min-h-[52px] sm:min-h-[64px]"
             >
-              {c.word}
+              <span className="capitalize">{c.word.toLowerCase()}</span>
             </button>
           ))}
         </div>

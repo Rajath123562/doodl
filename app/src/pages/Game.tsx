@@ -139,15 +139,6 @@ export const Game: React.FC<GameProps> = ({
                 isDrawer && phase === 'DRAWING' ? 'cursor-crosshair' : 'cursor-default'
               }`}
             />
-
-            {/* Word Choice Overlay */}
-            {phase === 'SELECTING_WORD' && isDrawer && drawerCandidates.length > 0 && (
-              <WordChoiceOverlay
-                candidates={drawerCandidates}
-                expiresAtMs={snapshot?.deadlineAtMs || Date.now() + 10000}
-                onSelectWord={onSelectWord}
-              />
-            )}
           </div>
 
           {/* Drawer Toolbar (Only displayed for active drawer during DRAWING) */}
@@ -198,6 +189,15 @@ export const Game: React.FC<GameProps> = ({
         hasGuessed={hasGuessed}
         isDrawer={isDrawer}
       />
+
+      {/* Word Choice Modal Overlay (Drawer only) */}
+      {phase === 'SELECTING_WORD' && isDrawer && drawerCandidates.length > 0 && (
+        <WordChoiceOverlay
+          candidates={drawerCandidates}
+          expiresAtMs={snapshot?.deadlineAtMs || Date.now() + 10000}
+          onSelectWord={onSelectWord}
+        />
+      )}
 
       {/* Match Results Modal */}
       {phase === 'MATCH_RESULTS' && (
