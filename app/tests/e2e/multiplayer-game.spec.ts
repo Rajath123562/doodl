@@ -40,7 +40,7 @@ test.describe('Real 2-Browser Multiplayer Match Verification (P0-001, P0-002, P0
 
     // Host sees 1 player connected initially
     await expect(hostPage.getByRole('main').getByText('AliceHost')).toBeVisible();
-    await expect(hostPage.getByText('Need at least 2 connected players to start.')).toBeVisible();
+    await expect(hostPage.getByText(/Need at least 2 connected players to start/i)).toBeVisible();
 
     // 3. Guest joins via room code (P0-003)
     await guestPage.goto('/');
