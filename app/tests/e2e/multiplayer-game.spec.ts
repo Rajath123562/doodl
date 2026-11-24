@@ -78,7 +78,7 @@ test.describe('Real 2-Browser Multiplayer Match Verification (P0-001, P0-002, P0
     await expect(guestPage.getByRole('heading', { name: 'Choose Your Word!' })).not.toBeVisible();
 
     // Host picks the first candidate word
-    const candidateButtons = hostPage.locator('.grid.grid-cols-1.sm\\:grid-cols-3 button');
+    const candidateButtons = hostPage.locator('.grid button');
     await expect(candidateButtons).toHaveCount(3);
     const chosenWord = (await candidateButtons.first().textContent())?.trim();
     expect(chosenWord).toBeTruthy();
@@ -128,7 +128,7 @@ test.describe('Real 2-Browser Multiplayer Match Verification (P0-001, P0-002, P0
     // 10. Verify scoring and public announcement (P0-012, P0-013)
     // Guest input switches to already guessed confirmation
     await expect(
-      guestPage.locator('input[placeholder="You already guessed correctly! ✓"]')
+      guestPage.locator('input[placeholder*="guessed"]')
     ).toBeVisible({ timeout: 5000 });
 
     // Host sees public correct announcement
