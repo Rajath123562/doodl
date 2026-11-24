@@ -7,6 +7,10 @@ node_modules/
 dist/
 dist-ssr/
 *.local
+*.tsbuildinfo
+
+# Upgrade kit packages
+DOODL_V4_2_Three_Mode_Antigravity_Upgrade/
 
 # Environment variables & secrets
 .dev.vars
