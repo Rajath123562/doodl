@@ -42,11 +42,9 @@ export const Rules: React.FC<{ onNavigate: (route: string) => void }> = ({ onNav
         <section className="space-y-2">
           <h2 className="font-head font-extrabold text-xl text-[#1f2330]">3. Game Modes</h2>
           <ul className="list-disc pl-5 space-y-1">
-            <li><b>Classic:</b> Standard rounds with 60–120s timer.</li>
-            <li><b>Blitz:</b> Fast-paced 20–45s drawing rounds for rapid guessing.</li>
-            <li><b>Drawing Duels:</b> Two drawers draw simultaneously on separate canvases for the same prompt!</li>
-            <li><b>Chaos Mode:</b> Random server modifiers (limited palette, thick brush, timer rush).</li>
-            <li><b>Team Battles:</b> Team A vs Team B aggregated scoring.</li>
+            <li><b>Classic (2–20 players):</b> Standard drawing and guessing with automatic timed letter reveals.</li>
+            <li><b>Drawing Telephone (4–16 players):</b> Simultaneous write, draw, and describe chain reactions with side-splitting reveals!</li>
+            <li><b>Party Mix (4–12 players):</b> 4-stage variety tournament: Classic → Blitz → Chaos → Drawing Telephone with normalized ranking points.</li>
           </ul>
         </section>
 

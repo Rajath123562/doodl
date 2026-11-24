@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Avatar } from './Avatar';
-import type { GameMode, RoomSettings, WordPackId } from '@shared/game-types';
+import type { StandaloneGameMode, RoomSettings, WordPackId } from '@shared/game-types';
 import { createRoom, joinRoom } from '../networking/api';
 
 interface PlayWithFriendsModalProps {
@@ -20,52 +20,40 @@ interface PlayWithFriendsModalProps {
 }
 
 const GAME_MODES: Array<{
-  id: GameMode;
+  id: StandaloneGameMode;
   name: string;
   icon: string;
   tag: string;
   desc: string;
+  players: string;
   accent: string;
 }> = [
   {
     id: 'classic',
     name: 'Classic',
-    icon: '🎨',
-    tag: 'STANDARD',
-    desc: 'Take turns drawing secret words with live hints & chat scoring.',
+    icon: '✏️',
+    tag: '2–20 PLAYERS',
+    desc: 'Take turns drawing secret words with automatic timed hints & live chat scoring.',
+    players: '2–20 Players',
     accent: '#fd7259',
   },
   {
-    id: 'blitz',
-    name: 'Blitz',
-    icon: '⚡',
-    tag: 'FAST PACED',
-    desc: '30-second rapid rounds for maximum chaotic fun.',
-    accent: '#f59e0b',
-  },
-  {
-    id: 'duels',
-    name: 'Drawing Duels',
-    icon: '⚔️',
-    tag: 'HEAD TO HEAD',
-    desc: 'Two players draw simultaneously — guess which is which!',
+    id: 'telephone',
+    name: 'Drawing Telephone',
+    icon: '📞',
+    tag: '4–16 PLAYERS',
+    desc: 'Simultaneous prompt, draw, and describe chain reactions with big reveals.',
+    players: '4–16 Players',
     accent: '#8b5cf6',
   },
   {
-    id: 'chaos',
-    name: 'Chaos Mode',
-    icon: '🌀',
-    tag: 'MODIFIERS',
-    desc: 'Inverted coordinates, mirror brush & restricted color palettes.',
+    id: 'party_mix',
+    name: 'Party Mix',
+    icon: '🎉',
+    tag: '4–12 PLAYERS',
+    desc: '4-stage variety tournament: Classic -> Blitz -> Chaos -> Telephone.',
+    players: '4–12 Players',
     accent: '#ec4899',
-  },
-  {
-    id: 'teams',
-    name: 'Team Battles',
-    icon: '🛡️',
-    tag: 'CO-OP SQUADS',
-    desc: 'Red vs Blue team rosters competing for total squad score.',
-    accent: '#3b82f6',
   },
 ];
 
@@ -83,10 +71,10 @@ export const PlayWithFriendsModal: React.FC<PlayWithFriendsModalProps> = ({
   const [tab, setTab] = useState<'create' | 'join'>(initialJoinParam ? 'join' : 'create');
 
   // Create Room state
-  const [selectedMode, setSelectedMode] = useState<GameMode>('classic');
+  const [selectedMode, setSelectedMode] = useState<StandaloneGameMode>('classic');
   const [selectedPack, setSelectedPack] = useState<WordPackId>('everyday');
   const [maxPlayers, setMaxPlayers] = useState<number>(8);
-  const [drawSeconds, setDrawSeconds] = useState<number>(90);
+  const [drawSeconds, setDrawSeconds] = useState<number>(60);
   const [cyclesPerPlayer, setCyclesPerPlayer] = useState<number>(3);
 
   // Join Room state
@@ -105,7 +93,7 @@ export const PlayWithFriendsModal: React.FC<PlayWithFriendsModalProps> = ({
         visibility: 'private',
         maxPlayers,
         cyclesPerPlayer,
-        drawSeconds: selectedMode === 'blitz' ? 30 : drawSeconds,
+        drawSeconds,
         gameMode: selectedMode,
         wordPack: selectedPack,
         passwordProtected: false,
@@ -349,11 +337,35 @@ export const PlayWithFriendsModal: React.FC<PlayWithFriendsModalProps> = ({
                   onChange={(e) => setMaxPlayers(Number(e.target.value))}
                   className="w-full bg-[#fbfaf8] border border-[#e5e3de] rounded-xl px-2.5 py-2 text-xs font-bold text-[#1f2330] outline-none"
                 >
-                  <option value={4}>4 Players</option>
-                  <option value={6}>6 Players</option>
-                  <option value={8}>8 Players (Default)</option>
-                  <option value={10}>10 Players</option>
-                  <option value={12}>12 Players (Max)</option>
+                  {selectedMode === 'classic' && (
+                    <>
+                      <option value={2}>2 Players</option>
+                      <option value={4}>4 Players</option>
+                      <option value={6}>6 Players</option>
+                      <option value={8}>8 Players (Default)</option>
+                      <option value={12}>12 Players</option>
+                      <option value={16}>16 Players</option>
+                      <option value={20}>20 Players (Max)</option>
+                    </>
+                  )}
+                  {selectedMode === 'telephone' && (
+                    <>
+                      <option value={4}>4 Players (Min)</option>
+                      <option value={6}>6 Players</option>
+                      <option value={8}>8 Players (Default)</option>
+                      <option value={12}>12 Players</option>
+                      <option value={16}>16 Players (Max)</option>
+                    </>
+                  )}
+                  {selectedMode === 'party_mix' && (
+                    <>
+                      <option value={4}>4 Players (Min)</option>
+                      <option value={6}>6 Players</option>
+                      <option value={8}>8 Players (Default)</option>
+                      <option value={10}>10 Players</option>
+                      <option value={12}>12 Players (Max)</option>
+                    </>
+                  )}
                 </select>
               </div>
             </div>

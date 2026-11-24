@@ -13,6 +13,7 @@ interface GameHUDProps {
   maskedWord: string | null;
   isDrawer: boolean;
   drawerNickname: string;
+  gameMode?: string;
 }
 
 export const GameHUD: React.FC<GameHUDProps> = ({
@@ -23,6 +24,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   maskedWord,
   isDrawer,
   drawerNickname,
+  gameMode = 'Classic',
 }) => {
   const [timeLeft, setTimeLeft] = React.useState<number>(0);
 
@@ -42,47 +44,57 @@ export const GameHUD: React.FC<GameHUDProps> = ({
     return () => clearInterval(interval);
   }, [deadlineAtMs]);
 
+  const letterCount = maskedWord
+    ? maskedWord.replace(/[^A-Za-z0-9_]/g, '').length
+    : 0;
+
   return (
-    <div className="space-y-3">
-      {/* Top Meta Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-[10px] font-black uppercase tracking-wider text-[#8e929e]">
+    <div className="space-y-2">
+      {/* Dark Round Status Bar */}
+      <div className="bg-[#24293a] text-white rounded-xl sm:rounded-2xl px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shadow-md select-none">
+        {/* Left: Turn / Round & Mode */}
+        <div className="min-w-[70px] sm:min-w-[120px]">
+          <div className="text-[10px] sm:text-xs font-bold text-[#adb1bd] uppercase tracking-wider">
             ROUND <b className="text-[#fd7259]">{roundNumber}</b> OF {totalRounds}
           </div>
-          <div className="font-head font-extrabold text-xl text-[#1f2330]">
-            {phase === 'SELECTING_WORD' && `${drawerNickname} is choosing a word...`}
-            {phase === 'DRAWING' && (isDrawer ? 'You are drawing!' : `${drawerNickname} is drawing`)}
-            {phase === 'REVEAL' && 'Word Revealed!'}
-            {phase === 'ROUND_RESULTS' && 'Round Results'}
-            {phase === 'MATCH_RESULTS' && 'Match Complete!'}
+          <div className="text-xs sm:text-sm font-extrabold text-[#dfe0e9] capitalize">
+            {gameMode.replace('_', ' ')}
           </div>
         </div>
 
-        {/* Circular Countdown Timer */}
-        <div className="flex items-center gap-3 bg-white border border-[#e9e6e0] px-4 py-2 rounded-2xl shadow-sm">
-          <div className="relative w-10 h-10 rounded-full flex items-center justify-center font-head font-extrabold text-base bg-[#fbfaf8] border-2 border-[#fd7259]">
-            {timeLeft}
+        {/* Center: Masked Word & Category / Letters */}
+        <div className="text-center px-2 flex-1 min-w-0">
+          <div className="text-[9px] sm:text-[10px] font-bold tracking-widest text-[#9ea3b4] uppercase">
+            {phase === 'DRAWING'
+              ? isDrawer
+                ? 'YOUR SECRET WORD:'
+                : 'WHAT AM I DRAWING?'
+              : phase === 'SELECTING_WORD'
+              ? `${drawerNickname} is choosing a word...`
+              : phase === 'REVEAL'
+              ? 'WORD REVEALED!'
+              : phase.replace('_', ' ')}
           </div>
-          <div className="text-xs font-bold text-[#989aa4]">
-            SECONDS<br />
-            <strong className="text-[#292d3b]">REMAINING</strong>
+          <div className="font-head font-extrabold text-lg sm:text-2xl tracking-[0.2em] sm:tracking-[0.25em] text-[#fff] font-mono truncate">
+            {maskedWord || '...'}
           </div>
-        </div>
-      </div>
-
-      {/* Dark Word Bar */}
-      <div className="h-16 bg-[#24293a] text-white rounded-t-2xl px-6 flex items-center justify-between shadow-md select-none">
-        <div className="text-xs font-bold tracking-wider text-[#adb1bd]">
-          {isDrawer ? 'YOUR SECRET WORD:' : 'WHAT AM I DRAWING?'}
+          {letterCount > 0 && phase === 'DRAWING' && !isDrawer && (
+            <div className="text-[10px] text-[#f8d3a0] font-bold">
+              {letterCount} letters · Auto reveals enabled
+            </div>
+          )}
         </div>
 
-        <div className="font-head font-extrabold text-2xl tracking-[0.25em] text-[#fff] font-mono">
-          {maskedWord || '...'}
-        </div>
-
-        <div className="text-xs font-bold bg-[#3c4253] text-[#dfe0e9] px-3 py-1.5 rounded-full">
-          {phase === 'DRAWING' ? 'HINTS 1/2' : phase}
+        {/* Right: Countdown Clock */}
+        <div className="min-w-[65px] sm:min-w-[100px] flex items-center justify-end gap-2">
+          <div className="flex flex-col items-end">
+            <span className="font-head font-black text-xl sm:text-2xl text-white font-mono leading-none">
+              {timeLeft}
+            </span>
+            <span className="text-[8px] sm:text-[9px] font-bold text-[#989aa4] uppercase">
+              sec left
+            </span>
+          </div>
         </div>
       </div>
     </div>

@@ -103,18 +103,22 @@ export function calculateDrawerReward(uniqueCorrectGuessers: number): number {
  * Characters within words are separated by single space.
  * Words are separated by 3 spaces.
  * Revealed indices are shown in uppercase.
+ * Uses grapheme-cluster-safe splitting.
  */
 export function maskWord(word: string, revealedIndices: number[] = []): string {
+  if (!word) return '';
   const revealedSet = new Set(revealedIndices);
-  let globalIdx = 0;
   const words = word.split(' ');
+  let globalIdx = 0;
 
   return words
     .map((w) => {
-      const chars = Array.from(w);
-      const masked = chars.map((char) => {
+      const graphemes = Array.from(w);
+      const masked = graphemes.map((char) => {
         const currentIdx = globalIdx++;
-        if (char === '-') return '-';
+        if (char === '-' || char === "'" || !/\p{L}|\p{N}/u.test(char)) {
+          return char;
+        }
         if (revealedSet.has(currentIdx)) return char.toUpperCase();
         return '_';
       });
@@ -122,4 +126,118 @@ export function maskWord(word: string, revealedIndices: number[] = []): string {
       return masked.join(' ');
     })
     .join('   ');
+}
+
+import type { GameMode, StandaloneGameMode } from './game-types';
+
+export const STANDALONE_MODES: readonly StandaloneGameMode[] = ['classic', 'telephone', 'party_mix'] as const;
+
+export interface ModeMetadata {
+  id: GameMode;
+  name: string;
+  minPlayers: number;
+  maxPlayers: number;
+  isStandalone: boolean;
+  description: string;
+}
+
+export const MODE_CONFIG: Record<GameMode, ModeMetadata> = {
+  classic: {
+    id: 'classic',
+    name: 'Classic',
+    minPlayers: 2,
+    maxPlayers: 20,
+    isStandalone: true,
+    description: 'Standard drawing and guessing with automatic timed letter reveals.',
+  },
+  telephone: {
+    id: 'telephone',
+    name: 'Drawing Telephone',
+    minPlayers: 4,
+    maxPlayers: 16,
+    isStandalone: true,
+    description: 'Simultaneous prompt, draw, and describe chain reactions.',
+  },
+  party_mix: {
+    id: 'party_mix',
+    name: 'Party Mix',
+    minPlayers: 4,
+    maxPlayers: 12,
+    isStandalone: true,
+    description: 'Multi-stage variety tournament: Classic -> Blitz -> Chaos -> Telephone.',
+  },
+  blitz: {
+    id: 'blitz',
+    name: 'Blitz',
+    minPlayers: 2,
+    maxPlayers: 20,
+    isStandalone: false,
+    description: 'Rapid drawing rounds (internal Party Mix stage).',
+  },
+  chaos: {
+    id: 'chaos',
+    name: 'Chaos',
+    minPlayers: 2,
+    maxPlayers: 20,
+    isStandalone: false,
+    description: 'Drawing with restricted tools/colors (internal Party Mix stage).',
+  },
+  duels: {
+    id: 'duels',
+    name: 'Duels',
+    minPlayers: 2,
+    maxPlayers: 2,
+    isStandalone: false,
+    description: 'Legacy mode (read only).',
+  },
+  teams: {
+    id: 'teams',
+    name: 'Teams',
+    minPlayers: 2,
+    maxPlayers: 20,
+    isStandalone: false,
+    description: 'Legacy mode (read only).',
+  },
+};
+
+/**
+ * Computes deterministic automatic hint schedule:
+ * H = min(3, floor(N / 2)), where N is count of maskable letters/numbers.
+ * If N <= 1, H = 0.
+ * At elapsed T * i / (H + 1) for i = 1..H reveal one new position.
+ */
+export function computeAutomaticHintSchedule(word: string, durationMs: number): {
+  count: number;
+  offsetsMs: number[];
+  maskableIndices: number[];
+} {
+  const graphemes = Array.from(word);
+  const maskableIndices: number[] = [];
+  for (let i = 0; i < graphemes.length; i++) {
+    const g = graphemes[i];
+    if (/\p{L}|\p{N}/u.test(g)) {
+      maskableIndices.push(i);
+    }
+  }
+  const N = maskableIndices.length;
+  if (N <= 1) {
+    return { count: 0, offsetsMs: [], maskableIndices };
+  }
+  const count = Math.min(3, Math.floor(N / 2));
+  const offsetsMs: number[] = [];
+  for (let i = 1; i <= count; i++) {
+    offsetsMs.push(Math.ceil((durationMs * i) / (count + 1)));
+  }
+  return { count, offsetsMs, maskableIndices };
+}
+
+/**
+ * Normalized party points formula:
+ * With M eligible roster size and competition rank r (1, 2, 2, 4):
+ * award round(100 * (M - r) / (M - 1)) for M >= 2.
+ * Zero raw score gets zero normalized points.
+ */
+export function calculateNormalizedPartyPoints(M: number, rank: number, rawScore: number): number {
+  if (M < 2 || rawScore <= 0) return 0;
+  return Math.round((100 * (M - rank)) / (M - 1));
 }

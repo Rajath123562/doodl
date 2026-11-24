@@ -22,15 +22,21 @@ export const ClientIntentEnum = z.enum([
   'guess.submit',
   'chat.send',
   'reaction.send',
-  'round.hintRequest',
+  'round.hintRequest', // Deprecated
   'sync.request',
   'duel.guess',
   'team.assign',
+  'telephone.draft',
+  'telephone.submit',
+  'telephone.vote',
+  'party.nextStage',
 ]);
 
 export type ClientIntent = z.infer<typeof ClientIntentEnum>;
 
-export const GameModeEnum = z.enum(['classic', 'blitz', 'duels', 'chaos', 'teams']);
+export const StandaloneGameModeEnum = z.enum(['classic', 'telephone', 'party_mix']);
+export const LegacyGameModeEnum = z.enum(['blitz', 'duels', 'chaos', 'teams']);
+export const GameModeEnum = z.enum(['classic', 'telephone', 'party_mix', 'blitz', 'duels', 'chaos', 'teams']);
 export const WordPackEnum = z.enum([
   'everyday',
   'animals',
@@ -45,7 +51,7 @@ export const WordPackEnum = z.enum([
 
 export const RoomSettingsSchema = z.object({
   visibility: z.enum(['private', 'public']),
-  maxPlayers: z.number().int().min(2).max(12),
+  maxPlayers: z.number().int().min(2).max(20),
   cyclesPerPlayer: z.number().int().min(1).max(5),
   drawSeconds: z.number().int(),
   gameMode: GameModeEnum,
@@ -55,11 +61,20 @@ export const RoomSettingsSchema = z.object({
   password: z.string().max(64).optional(),
   language: z.enum(['en', 'hi', 'kn']).default('en'),
   allowSpectators: z.boolean().default(false),
+  autoHintsEnabled: z.boolean().default(true).optional(),
+  partyPreset: z.enum(['standard', 'short']).default('standard').optional(),
+  telephoneChainLength: z.number().int().min(4).max(16).optional(),
 }).refine((data) => {
   if (data.gameMode === 'blitz') {
     return [20, 30, 45].includes(data.drawSeconds);
   }
-  return [60, 75, 90, 120].includes(data.drawSeconds);
+  if (data.gameMode === 'telephone') {
+    return [30, 45, 60, 90, 120].includes(data.drawSeconds);
+  }
+  if (data.gameMode === 'party_mix') {
+    return [20, 25, 30, 40, 45, 60, 90].includes(data.drawSeconds);
+  }
+  return [30, 45, 60, 75, 90, 120].includes(data.drawSeconds);
 }, {
   message: "Invalid drawSeconds for selected gameMode",
   path: ["drawSeconds"],
@@ -104,6 +119,11 @@ export const CreateRoomSchema = z.object({
   hostNickname: z.string().trim().min(2).max(20).optional(),
   avatarFace: z.number().int().min(0).max(5).optional(),
   avatarColor: z.string().optional(),
+}).refine((data) => {
+  return ['classic', 'telephone', 'party_mix'].includes(data.settings.gameMode);
+}, {
+  message: "Only Classic, Drawing Telephone, and Party Mix are standalone game modes",
+  path: ["settings", "gameMode"],
 });
 
 export const JoinRoomSchema = z.object({
@@ -162,6 +182,19 @@ export const GuessSubmitPayloadSchema = z.object({
 
 export const ChatSendPayloadSchema = z.object({
   text: z.string().trim().min(1).max(300),
+  channel: z.enum(['all', 'solved', 'public']).default('all'),
+});
+
+export const TelephoneDraftPayloadSchema = z.object({
+  stepIndex: z.number().int().min(0).max(32),
+  text: z.string().trim().max(160).optional(),
+  strokes: z.array(StrokeCommandSchema).max(1000).optional(),
+});
+
+export const TelephoneSubmitPayloadSchema = z.object({
+  stepIndex: z.number().int().min(0).max(32),
+  text: z.string().trim().min(1).max(160).optional(),
+  strokes: z.array(StrokeCommandSchema).max(1000).optional(),
 });
 
 export const ReactionSendPayloadSchema = z.object({

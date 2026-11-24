@@ -14,6 +14,7 @@ import type {
   StrokeCommand,
   TurnResult,
   ChaosModifier,
+  TelephoneChain,
 } from '../shared/game-types';
 import type { ServerEnvelope } from '../shared/protocol';
 import {
@@ -31,10 +32,21 @@ import {
   StrokeEndPayloadSchema,
   DrawUndoPayloadSchema,
   DrawClearPayloadSchema,
+  TelephoneSubmitPayloadSchema,
+  TelephoneDraftPayloadSchema,
 } from '../shared/schemas';
-import { calculateGuesserScore, calculateDrawerReward, maskWord } from '../shared/rules';
+import {
+  calculateGuesserScore,
+  calculateDrawerReward,
+  maskWord,
+  computeAutomaticHintSchedule,
+  MODE_CONFIG,
+  STANDALONE_MODES,
+} from '../shared/rules';
 import { selectCandidateWords, checkGuess } from './word-engine';
 import { sanitizeNickname, sanitizeChatMessage, generateRandomId } from './auth';
+import { TelephoneEngine } from './telephone-engine';
+import { PartyMixEngine } from './party-engine';
 
 export interface Env {
   ROOM_DO: DurableObjectNamespace<RoomDO>;
@@ -80,6 +92,11 @@ export class RoomDO extends DurableObject<Env> {
   private eligibleDrawerIds: string[] = [];
   private chaosModifier: ChaosModifier | null = null;
   private hintAtMs: number | null = null;
+  private hintScheduleMs: number[] = [];
+  private hintIndicesToReveal: number[] = [];
+  private telephoneEngine: TelephoneEngine | null = null;
+  private telephoneChains: TelephoneChain[] = [];
+  private partyEngine: PartyMixEngine | null = null;
 
   private seats = new Map<string, PublicSeat>();
   private seatSessions = new Map<string, { guestId: string; epoch: number }>();
@@ -470,18 +487,39 @@ export class RoomDO extends DurableObject<Env> {
   async alarm() {
     const now = Date.now();
 
+    // Drawing Telephone alarm lifecycle (T05)
+    if (this.settings.gameMode === 'telephone' && this.telephoneEngine) {
+      if (!this.deadlineAtMs || now < this.deadlineAtMs) return;
+      this.telephoneEngine.autoFinalizeStep(this.telephoneEngine.getCurrentStepIndex());
+      this.advanceTelephone();
+      return;
+    }
+
     if (this.phase === 'SELECTING_WORD') {
       if (!this.deadlineAtMs || now < this.deadlineAtMs) return;
       // Word selection timeout -> auto select first candidate
       const autoWord = this.candidateWords[0]?.word || 'Pizza';
       this.startDrawing(autoWord);
     } else if (this.phase === 'DRAWING') {
-      if (this.hintAtMs && now >= this.hintAtMs && this.deadlineAtMs && now < this.deadlineAtMs) {
-        this.revealHint();
+      // Reveal scheduled hints (or fast-forwarded hintAtMs in tests)
+      let revealedAny = false;
+      while (this.hintScheduleMs.length > 0 && now >= this.hintScheduleMs[0]) {
+        this.hintScheduleMs.shift();
+        this.revealNextScheduledHint();
+        revealedAny = true;
+      }
+      if (!revealedAny && this.hintAtMs && now >= this.hintAtMs) {
+        this.revealNextScheduledHint();
         this.hintAtMs = null;
+      }
+
+      if (this.hintScheduleMs.length > 0) {
+        this.ctx.storage.setAlarm(this.hintScheduleMs[0]);
+      } else if (this.deadlineAtMs && now < this.deadlineAtMs) {
         this.ctx.storage.setAlarm(this.deadlineAtMs);
         return;
       }
+
       if (!this.deadlineAtMs || now < this.deadlineAtMs) return;
       // Drawing round timeout -> reveal
       this.endDrawingTurn('TIMEOUT');
@@ -513,8 +551,12 @@ export class RoomDO extends DurableObject<Env> {
           return this.sendError(ws, 'INVALID_PHASE', 'Game cannot be started in current phase.', false);
         }
         const activeCount = Array.from(this.seats.values()).filter(s => s.connected && s.role !== 'spectator').length;
-        if (activeCount < 2) {
-          return this.sendError(ws, 'NOT_ENOUGH_PLAYERS', 'At least 2 connected players are required.', false);
+        const modeMeta = MODE_CONFIG[this.settings.gameMode] || MODE_CONFIG.classic;
+        if (activeCount < modeMeta.minPlayers) {
+          return this.sendError(ws, 'NOT_ENOUGH_PLAYERS', `${modeMeta.name} requires at least ${modeMeta.minPlayers} connected players to start.`, false);
+        }
+        if (activeCount > modeMeta.maxPlayers) {
+          return this.sendError(ws, 'TOO_MANY_PLAYERS', `${modeMeta.name} supports at most ${modeMeta.maxPlayers} players.`, false);
         }
         this.startMatch();
         break;
@@ -530,6 +572,9 @@ export class RoomDO extends DurableObject<Env> {
         const parsed = RoomSettingsSchema.safeParse(payload);
         if (!parsed.success) {
           return this.sendError(ws, 'INVALID_SETTINGS', parsed.error.issues[0]?.message || 'Invalid settings.', false);
+        }
+        if (!STANDALONE_MODES.includes(parsed.data.gameMode as any)) {
+          return this.sendError(ws, 'UNSUPPORTED_MODE', 'Only Classic, Drawing Telephone, and Party Mix are standalone game modes.', false);
         }
         this.settings = parsed.data;
         this.saveMeta('settings', JSON.stringify(this.settings));
@@ -744,11 +789,14 @@ export class RoomDO extends DurableObject<Env> {
             this.deadlineAtMs || Date.now(),
             duration,
             rank,
-            this.revealedHintIndices.length
+            0 // V4.2: zero hint penalty
           );
 
           seat.score += scoreCalc.points;
           this.saveSeat(seat, this.seatSessions.get(seat.id)!.guestId, this.seatSessions.get(seat.id)!.epoch);
+          if (this.partyEngine) {
+            this.partyEngine.recordRawScore(seat.id, scoreCalc.points);
+          }
 
           // Private feedback to guesser
           this.sendPrivateGuessFeedback(ws, 'CORRECT', scoreCalc.points, rank);
@@ -789,7 +837,10 @@ export class RoomDO extends DurableObject<Env> {
         if (unmuteTime && Date.now() < unmuteTime) {
           return this.sendError(ws, 'MUTED', 'You are currently muted by the host.', false);
         }
-        this.broadcastChat(seat, sanitizeChatMessage(parsed.data.text));
+        const isDrawer = this.currentDrawerIds.includes(seat.id);
+        const hasGuessed = Boolean(seat.guessedThisTurn);
+        const audience = (this.phase === 'DRAWING' && (isDrawer || hasGuessed)) ? 'solved' : 'all';
+        this.broadcastChat(seat, sanitizeChatMessage(parsed.data.text), false, false, audience);
         break;
       }
 
@@ -833,9 +884,39 @@ export class RoomDO extends DurableObject<Env> {
       }
 
       case 'round.hintRequest': {
-        if (this.phase === 'DRAWING' && (seat.role === 'host' || this.currentDrawerIds.includes(seat.id))) {
-          this.revealHint();
+        return this.sendError(ws, 'UNSUPPORTED_ACTION', 'Manual hints are removed in V4.2. Hints are automatic and timed.', false);
+      }
+
+      case 'telephone.submit': {
+        if (!this.telephoneEngine) return;
+        const parsed = TelephoneSubmitPayloadSchema.safeParse(payload);
+        if (!parsed.success) return;
+        try {
+          const { allSubmitted } = this.telephoneEngine.submitArtifact(
+            seat.id,
+            parsed.data.stepIndex,
+            parsed.data.text,
+            parsed.data.strokes
+          );
+          if (allSubmitted) {
+            this.advanceTelephone();
+          }
+        } catch (err: any) {
+          this.sendError(ws, 'TELEPHONE_SUBMIT_ERROR', err?.message || 'Failed to submit artifact.', false);
         }
+        break;
+      }
+
+      case 'telephone.draft': {
+        if (!this.telephoneEngine) return;
+        const parsed = TelephoneDraftPayloadSchema.safeParse(payload);
+        if (!parsed.success) return;
+        this.telephoneEngine.saveDraft(
+          seat.id,
+          parsed.data.stepIndex,
+          parsed.data.text,
+          parsed.data.strokes
+        );
         break;
       }
 
@@ -866,6 +947,44 @@ export class RoomDO extends DurableObject<Env> {
 
   private startMatch() {
     this.matchId = generateRandomId('match');
+
+    // Drawing Telephone Branch (T01–T09)
+    if (this.settings.gameMode === 'telephone') {
+      this.phase = 'DRAWING';
+      this.telephoneEngine = new TelephoneEngine(this.matchId);
+      this.telephoneEngine.initMatch(Array.from(this.seats.values()), this.settings.telephoneChainLength);
+      this.saveMeta('matchId', this.matchId);
+      this.saveMeta('phase', this.phase);
+
+      this.broadcast({
+        v: 1,
+        type: 'match.start',
+        seq: ++this.seq,
+        stateVersion: ++this.stateVersion,
+        serverTimeMs: Date.now(),
+        payload: { matchId: this.matchId, totalRounds: this.telephoneEngine.getTotalSteps() },
+      });
+
+      this.startTelephoneStep(0);
+      return;
+    }
+
+    // Party Mix Branch (P01–P08)
+    if (this.settings.gameMode === 'party_mix') {
+      this.partyEngine = new PartyMixEngine(this.matchId, this.settings.partyPreset);
+      this.partyEngine.initMatch(Array.from(this.seats.values()));
+      const stageConfig = this.partyEngine.getCurrentStageConfig();
+      this.settings.drawSeconds = stageConfig.drawSeconds;
+      this.broadcast({
+        v: 1,
+        type: 'party.stageStarted',
+        seq: ++this.seq,
+        stateVersion: ++this.stateVersion,
+        serverTimeMs: Date.now(),
+        payload: { stageConfig },
+      });
+    }
+
     this.phase = 'SELECTING_WORD';
     this.roundNumber = 1;
     this.drawerIndex = 0;
@@ -901,6 +1020,66 @@ export class RoomDO extends DurableObject<Env> {
     });
 
     this.startWordSelection();
+  }
+
+  private startTelephoneStep(stepIndex: number) {
+    if (!this.telephoneEngine) return;
+    const { assignments, deadlineAtMs, stepType } = this.telephoneEngine.startStep(stepIndex);
+    this.deadlineAtMs = deadlineAtMs;
+    this.saveMeta('deadlineAtMs', String(deadlineAtMs));
+    this.ctx.storage.setAlarm(deadlineAtMs);
+
+    // Private routing delivery: each player receives exclusively their assigned chain step (T03)
+    for (const [seatId, assignment] of assignments.entries()) {
+      const sockets = this.ctx.getWebSockets(seatId);
+      for (const ws of sockets) {
+        try {
+          ws.send(JSON.stringify({
+            v: 1,
+            type: 'telephone.assignment',
+            seq: ++this.seq,
+            stateVersion: this.stateVersion,
+            serverTimeMs: Date.now(),
+            payload: { assignment },
+          }));
+        } catch {}
+      }
+    }
+
+    this.broadcast({
+      v: 1,
+      type: 'telephone.stepStarted',
+      seq: ++this.seq,
+      stateVersion: ++this.stateVersion,
+      serverTimeMs: Date.now(),
+      payload: {
+        stepIndex,
+        totalSteps: this.telephoneEngine.getTotalSteps(),
+        stepType,
+        deadlineAtMs,
+      },
+    });
+  }
+
+  private advanceTelephone() {
+    if (!this.telephoneEngine) return;
+    const current = this.telephoneEngine.getCurrentStepIndex();
+    if (this.telephoneEngine.isComplete()) {
+      this.phase = 'MATCH_RESULTS';
+      this.telephoneChains = this.telephoneEngine.getAllChains();
+      this.saveMeta('phase', this.phase);
+
+      this.broadcast({
+        v: 1,
+        type: 'telephone.reveal',
+        seq: ++this.seq,
+        stateVersion: ++this.stateVersion,
+        serverTimeMs: Date.now(),
+        payload: { chains: this.telephoneChains },
+      });
+    } else {
+      this.startTelephoneStep(current + 1);
+    }
   }
 
   private startWordSelection() {
@@ -1011,15 +1190,28 @@ export class RoomDO extends DurableObject<Env> {
     }
 
     const drawDuration = this.settings.drawSeconds * 1000;
-    const deadline = Date.now() + drawDuration;
+    const now = Date.now();
+    const deadline = now + drawDuration;
     this.deadlineAtMs = deadline;
-    this.hintAtMs = Date.now() + Math.floor(drawDuration / 2);
+
+    // Automatic Hint Schedule (C05, C06, C07)
+    const hintPlan = computeAutomaticHintSchedule(this.internalSecretWord, drawDuration);
+    this.hintScheduleMs = hintPlan.offsetsMs.map((offset: number) => now + offset);
+    
+    // Deterministically shuffle maskable indices
+    const shuffled = [...hintPlan.maskableIndices];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    this.hintIndicesToReveal = shuffled.slice(0, hintPlan.count);
 
     this.saveMeta('phase', this.phase);
     this.saveMeta('internalSecretWord', this.internalSecretWord);
     this.saveMeta('deadlineAtMs', String(this.deadlineAtMs));
 
-    this.ctx.storage.setAlarm(this.hintAtMs);
+    const nextAlarm = this.hintScheduleMs.length > 0 ? this.hintScheduleMs[0] : deadline;
+    this.ctx.storage.setAlarm(nextAlarm);
 
     const masked = maskWord(this.internalSecretWord, []);
 
@@ -1063,33 +1255,33 @@ export class RoomDO extends DurableObject<Env> {
     }
   }
 
-  private revealHint() {
-    if (!this.internalSecretWord || this.revealedHintIndices.length >= Math.floor(this.internalSecretWord.length / 2)) {
-      return;
-    }
-    const unrevealed: number[] = [];
-    for (let i = 0; i < this.internalSecretWord.length; i++) {
-      if (this.internalSecretWord[i] !== ' ' && !this.revealedHintIndices.includes(i)) {
-        unrevealed.push(i);
+  private revealNextScheduledHint() {
+    if (!this.internalSecretWord) return;
+    if (this.hintIndicesToReveal.length === 0) {
+      for (let i = 0; i < this.internalSecretWord.length; i++) {
+        if (/\p{L}|\p{N}/u.test(this.internalSecretWord[i]) && !this.revealedHintIndices.includes(i)) {
+          this.hintIndicesToReveal.push(i);
+        }
       }
     }
-    if (unrevealed.length > 0) {
-      const nextIdx = unrevealed[Math.floor(Math.random() * unrevealed.length)];
-      this.revealedHintIndices.push(nextIdx);
-      const masked = maskWord(this.internalSecretWord, this.revealedHintIndices);
-      this.broadcast({
-        v: 1,
-        type: 'round.hintRevealed',
-        seq: ++this.seq,
-        stateVersion: ++this.stateVersion,
-        serverTimeMs: Date.now(),
-        payload: {
-          revealedIndex: nextIdx,
-          maskedWord: masked,
-          revealedHintIndices: this.revealedHintIndices,
-        },
-      });
-    }
+    if (this.hintIndicesToReveal.length === 0) return;
+    const nextIdx = this.hintIndicesToReveal.shift();
+    if (nextIdx === undefined || this.revealedHintIndices.includes(nextIdx)) return;
+
+    this.revealedHintIndices.push(nextIdx);
+    const masked = maskWord(this.internalSecretWord, this.revealedHintIndices);
+    this.broadcast({
+      v: 1,
+      type: 'round.hintRevealed',
+      seq: ++this.seq,
+      stateVersion: ++this.stateVersion,
+      serverTimeMs: Date.now(),
+      payload: {
+        revealedIndex: nextIdx,
+        maskedWord: masked,
+        revealedHintIndices: this.revealedHintIndices,
+      },
+    });
   }
 
   private endDrawingTurn(reason: 'TIMEOUT' | 'ALL_GUESSED' | 'DRAWER_DISCONNECT') {
@@ -1106,6 +1298,9 @@ export class RoomDO extends DurableObject<Env> {
       if (drawerSeat) {
         drawerSeat.score += drawerReward;
         this.saveSeat(drawerSeat, this.seatSessions.get(drawerSeat.id)!.guestId, this.seatSessions.get(drawerSeat.id)!.epoch);
+        if (this.partyEngine && this.currentDrawerIds[0]) {
+          this.partyEngine.recordRawScore(this.currentDrawerIds[0], drawerReward);
+        }
       }
     }
 
@@ -1190,19 +1385,36 @@ export class RoomDO extends DurableObject<Env> {
     this.saveMeta('phase', this.phase);
     this.saveMeta('deadlineAtMs', '');
 
-    const rankedSeats = Array.from(this.seats.values())
-      .filter(s => s.role !== 'spectator')
-      .sort((a, b) => b.score - a.score);
+    let podium: any[];
+    if (this.settings.gameMode === 'party_mix' && this.partyEngine) {
+      const leaderboard = this.partyEngine.getFinalLeaderboard();
+      podium = leaderboard.map((item) => {
+        const s = this.seats.get(item.seatId);
+        return {
+          seatId: item.seatId,
+          nickname: item.nickname,
+          avatarFace: s?.avatarFace || 0,
+          avatarColor: s?.avatarColor || 'coral',
+          finalScore: item.totalPoints,
+          rank: item.rank,
+          firstCorrectCount: 0,
+        };
+      });
+    } else {
+      const rankedSeats = Array.from(this.seats.values())
+        .filter(s => s.role !== 'spectator')
+        .sort((a, b) => b.score - a.score);
 
-    const podium = rankedSeats.map((s, idx) => ({
-      seatId: s.id,
-      nickname: s.nickname,
-      avatarFace: s.avatarFace,
-      avatarColor: s.avatarColor,
-      finalScore: s.score,
-      rank: idx + 1,
-      firstCorrectCount: 0,
-    }));
+      podium = rankedSeats.map((s, idx) => ({
+        seatId: s.id,
+        nickname: s.nickname,
+        avatarFace: s.avatarFace,
+        avatarColor: s.avatarColor,
+        finalScore: s.score,
+        rank: idx + 1,
+        firstCorrectCount: 0,
+      }));
+    }
 
     this.broadcast({
       v: 1,
@@ -1305,7 +1517,8 @@ export class RoomDO extends DurableObject<Env> {
     }
   }
 
-  private broadcastChat(seat: PublicSeat, text: string, isCorrect = false, isClose = false) {
+  private broadcastChat(seat: PublicSeat, text: string, isCorrect = false, isClose = false, targetAudience: 'all' | 'solved' = 'all') {
+    const isSolved = targetAudience === 'solved';
     const msg: ChatMessage = {
       id: generateRandomId('msg'),
       seatId: seat.id,
@@ -1313,19 +1526,30 @@ export class RoomDO extends DurableObject<Env> {
       text,
       isCorrect,
       isClose,
+      channel: isSolved ? 'solved' : undefined,
       timestampMs: Date.now(),
     };
     this.chatHistory.push(msg);
     if (this.chatHistory.length > 100) this.chatHistory.shift();
 
-    this.broadcast({
-      v: 1,
-      type: 'chat.message',
+    const event = {
+      v: 1 as const,
+      type: 'chat.message' as const,
       seq: ++this.seq,
       stateVersion: this.stateVersion,
       serverTimeMs: Date.now(),
       payload: { message: msg },
-    });
+    };
+
+    if (isSolved) {
+      const solvedSeatIds = new Set<string>([
+        ...this.currentDrawerIds,
+        ...Array.from(this.seats.values()).filter(s => s.guessedThisTurn).map(s => s.id)
+      ]);
+      this.broadcast(event, (seatId) => solvedSeatIds.has(seatId));
+    } else {
+      this.broadcast(event);
+    }
   }
 
   private sendPrivateGuessFeedback(ws: WebSocket, status: 'CORRECT' | 'CLOSE' | 'WRONG' | 'ALREADY_GUESSED' | 'RATE_LIMITED', awardedPoints: number, rank?: number) {

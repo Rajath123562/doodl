@@ -39,63 +39,6 @@ export const HostSettingsModal: React.FC<HostSettingsModalProps> = ({
         </div>
 
         <form onSubmit={handleSave} className="space-y-4">
-          {/* Max Players */}
-          <div>
-            <label className="block text-xs font-bold text-[#1f2330] mb-1">Max Players (2 - 12)</label>
-            <select
-              value={settings.maxPlayers}
-              onChange={(e) => setSettings({ ...settings, maxPlayers: Number(e.target.value) })}
-              className="w-full bg-[#fbfaf8] border border-[#e5e3de] rounded-xl px-3 py-2 text-sm font-bold text-[#1f2330] outline-none"
-            >
-              {[2, 4, 6, 8, 10, 12].map((n) => (
-                <option key={n} value={n}>
-                  {n} Players
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Rounds Per Player */}
-          <div>
-            <label className="block text-xs font-bold text-[#1f2330] mb-1">Rounds per Player (1 - 5)</label>
-            <select
-              value={settings.cyclesPerPlayer}
-              onChange={(e) => setSettings({ ...settings, cyclesPerPlayer: Number(e.target.value) })}
-              className="w-full bg-[#fbfaf8] border border-[#e5e3de] rounded-xl px-3 py-2 text-sm font-bold text-[#1f2330] outline-none"
-            >
-              {[1, 2, 3, 4, 5].map((n) => (
-                <option key={n} value={n}>
-                  {n} {n === 1 ? 'Turn each' : 'Turns each'}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Draw Seconds */}
-          <div>
-            <label className="block text-xs font-bold text-[#1f2330] mb-1">Draw Time (seconds)</label>
-            <select
-              value={settings.drawSeconds}
-              onChange={(e) => setSettings({ ...settings, drawSeconds: Number(e.target.value) })}
-              className="w-full bg-[#fbfaf8] border border-[#e5e3de] rounded-xl px-3 py-2 text-sm font-bold text-[#1f2330] outline-none"
-            >
-              {settings.gameMode === 'blitz' ? (
-                <>
-                  <option value={20}>20 Seconds</option>
-                  <option value={30}>30 Seconds (Default)</option>
-                  <option value={45}>45 Seconds</option>
-                </>
-              ) : (
-                <>
-                  <option value={60}>60 Seconds</option>
-                  <option value={75}>75 Seconds</option>
-                  <option value={90}>90 Seconds (Default)</option>
-                  <option value={120}>120 Seconds</option>
-                </>
-              )}
-            </select>
-          </div>
-
           {/* Game Mode */}
           <div>
             <label className="block text-xs font-bold text-[#1f2330] mb-1">Game Mode</label>
@@ -103,18 +46,72 @@ export const HostSettingsModal: React.FC<HostSettingsModalProps> = ({
               value={settings.gameMode}
               onChange={(e) => {
                 const gm = e.target.value as GameMode;
-                const newDraw = gm === 'blitz' ? 30 : 90;
-                setSettings({ ...settings, gameMode: gm, drawSeconds: newDraw });
+                const max = gm === 'party_mix' ? Math.min(settings.maxPlayers, 12) : gm === 'telephone' ? Math.min(settings.maxPlayers, 16) : settings.maxPlayers;
+                const min = gm === 'telephone' || gm === 'party_mix' ? Math.max(max, 4) : max;
+                setSettings({ ...settings, gameMode: gm, maxPlayers: min });
               }}
               className="w-full bg-[#fbfaf8] border border-[#e5e3de] rounded-xl px-3 py-2 text-sm font-bold text-[#1f2330] outline-none"
             >
-              <option value="classic">Classic (Standard Turn Rotation)</option>
-              <option value="blitz">Blitz (Fast-paced Rounds)</option>
-              <option value="duels">Drawing Duels (2 Simultaneous Drawers)</option>
-              <option value="chaos">Chaos Mode (Seeded Modifiers)</option>
-              <option value="teams">Team Battles (A vs B Squads)</option>
+              <option value="classic">Classic (Drawing & Guessing, 2–20 players)</option>
+              <option value="telephone">Drawing Telephone (Chain Reaction, 4–16 players)</option>
+              <option value="party_mix">Party Mix (4-Stage Variety, 4–12 players)</option>
             </select>
           </div>
+
+          {/* Max Players */}
+          <div>
+            <label className="block text-xs font-bold text-[#1f2330] mb-1">Max Players</label>
+            <select
+              value={settings.maxPlayers}
+              onChange={(e) => setSettings({ ...settings, maxPlayers: Number(e.target.value) })}
+              className="w-full bg-[#fbfaf8] border border-[#e5e3de] rounded-xl px-3 py-2 text-sm font-bold text-[#1f2330] outline-none"
+            >
+              {settings.gameMode === 'classic' && (
+                <>
+                  <option value={2}>2 Players</option>
+                  <option value={4}>4 Players</option>
+                  <option value={6}>6 Players</option>
+                  <option value={8}>8 Players</option>
+                  <option value={12}>12 Players</option>
+                  <option value={16}>16 Players</option>
+                  <option value={20}>20 Players</option>
+                </>
+              )}
+              {settings.gameMode === 'telephone' && (
+                <>
+                  <option value={4}>4 Players (Min)</option>
+                  <option value={6}>6 Players</option>
+                  <option value={8}>8 Players</option>
+                  <option value={12}>12 Players</option>
+                  <option value={16}>16 Players (Max)</option>
+                </>
+              )}
+              {settings.gameMode === 'party_mix' && (
+                <>
+                  <option value={4}>4 Players (Min)</option>
+                  <option value={6}>6 Players</option>
+                  <option value={8}>8 Players</option>
+                  <option value={10}>10 Players</option>
+                  <option value={12}>12 Players (Max)</option>
+                </>
+              )}
+            </select>
+          </div>
+
+          {/* Automatic Letter Hints */}
+          {settings.gameMode !== 'telephone' && (
+            <div>
+              <label className="block text-xs font-bold text-[#1f2330] mb-1">Automatic Letter Hints</label>
+              <select
+                value={settings.autoHintsEnabled !== false ? 'yes' : 'no'}
+                onChange={(e) => setSettings({ ...settings, autoHintsEnabled: e.target.value === 'yes' })}
+                className="w-full bg-[#fbfaf8] border border-[#e5e3de] rounded-xl px-3 py-2 text-sm font-bold text-[#1f2330] outline-none"
+              >
+                <option value="yes">Enabled (Server Scheduled Reveals)</option>
+                <option value="no">Disabled (No Letter Reveals)</option>
+              </select>
+            </div>
+          )}
 
           {/* Word Pack */}
           <div>

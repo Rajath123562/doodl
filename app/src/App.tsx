@@ -413,6 +413,7 @@ export default function App() {
             onSendRedo={() => wsRef.current?.sendIntent('draw.redo', { canvasId: 'main' })}
             onSendClear={() => wsRef.current?.sendIntent('draw.clear', { canvasId: 'main' })}
             onSendGuess={(guess: string) => wsRef.current?.sendIntent('guess.submit', { guess })}
+            onSendChat={(text: string) => wsRef.current?.sendIntent('chat.send', { text, channel: 'solved' })}
             onPlayAgain={() => wsRef.current?.sendIntent('room.playAgain')}
             onLeave={handleLeaveRoom}
             engineRef={engineRef}

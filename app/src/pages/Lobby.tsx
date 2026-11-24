@@ -4,6 +4,7 @@
 
 import React, { useState } from 'react';
 import type { PublicRoomSnapshot, RoomSettings, PublicSeat } from '@shared/game-types';
+import { MODE_CONFIG } from '@shared/rules';
 import { Avatar } from '../components/Avatar';
 import { HostSettingsModal } from '../components/HostSettingsModal';
 
@@ -53,7 +54,9 @@ export const Lobby: React.FC<LobbyProps> = ({
   };
 
   const activePlayers = seats.filter((s) => s.connected && s.role !== 'spectator');
-  const canStart = isHost && activePlayers.length >= 2;
+  const modeMeta = MODE_CONFIG[settings.gameMode] || MODE_CONFIG.classic;
+  const minRequired = modeMeta.minPlayers;
+  const canStart = isHost && activePlayers.length >= minRequired && activePlayers.length <= modeMeta.maxPlayers;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto py-6">
@@ -106,7 +109,7 @@ export const Lobby: React.FC<LobbyProps> = ({
               Connected Players ({seats.length} / {settings.maxPlayers})
             </h2>
             <span className="text-xs text-[#707687] font-bold">
-              Min 2 players required to start
+              Min {minRequired} players required {activePlayers.length < minRequired ? `(Need ${minRequired - activePlayers.length} more)` : '✓ Ready'}
             </span>
           </div>
 
@@ -161,9 +164,9 @@ export const Lobby: React.FC<LobbyProps> = ({
           <div className="pt-4 border-t border-[#f0eee9] flex items-center justify-between">
             <div className="text-xs text-[#707687]">
               {canStart ? (
-                <span className="text-[#31775a] font-bold">✓ Ready to play!</span>
+                <span className="text-[#31775a] font-bold">✓ Ready to play {modeMeta.name}!</span>
               ) : isHost ? (
-                <span>Need at least 2 connected players to start.</span>
+                <span>Need at least {minRequired} connected players to start {modeMeta.name}.</span>
               ) : (
                 <span>Waiting for the host to start the game...</span>
               )}
