@@ -43,10 +43,11 @@ export const WordChoiceOverlay: React.FC<WordChoiceOverlayProps> = ({
         </p>
 
         {/* 3 Candidate Words: Side-by-side on all screens so all 3 words are 100% visible */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-1 sm:pt-2">
+        <div data-testid="word-candidates" className="grid grid-cols-3 gap-2 sm:gap-3 pt-1 sm:pt-2">
           {candidates.map((c) => (
             <button
               key={c.id}
+              data-testid="word-candidate-btn"
               type="button"
               onClick={() => onSelectWord(c.id)}
               className="py-3 px-2 sm:py-4 sm:px-3 rounded-xl sm:rounded-2xl bg-[#faf9f6] border-2 border-[#ebe7e3] font-bold text-xs sm:text-sm text-[#1f2330] hover:bg-[#fff1ed] hover:border-[#fd7259] active:scale-95 transition-all shadow-sm flex flex-col items-center justify-center text-center break-words min-h-[52px] sm:min-h-[64px]"

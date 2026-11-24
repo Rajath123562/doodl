@@ -75,7 +75,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               ? 'WORD REVEALED!'
               : phase.replace('_', ' ')}
           </div>
-          <div className="font-head font-extrabold text-lg sm:text-2xl tracking-[0.2em] sm:tracking-[0.25em] text-[#fff] font-mono truncate">
+          <div data-testid="hud-word" className="font-head font-extrabold text-lg sm:text-2xl tracking-[0.2em] sm:tracking-[0.25em] text-[#fff] font-mono truncate">
             {maskedWord || '...'}
           </div>
           {letterCount > 0 && phase === 'DRAWING' && !isDrawer && (

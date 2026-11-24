@@ -78,7 +78,7 @@ test.describe('Real 2-Browser Multiplayer Match Verification (P0-001, P0-002, P0
     await expect(guestPage.getByRole('heading', { name: 'Choose Your Word!' })).not.toBeVisible();
 
     // Host picks the first candidate word
-    const candidateButtons = hostPage.locator('.grid button');
+    const candidateButtons = hostPage.getByTestId('word-candidate-btn');
     await expect(candidateButtons).toHaveCount(3);
     const chosenWord = (await candidateButtons.first().textContent())?.trim();
     expect(chosenWord).toBeTruthy();
@@ -87,11 +87,11 @@ test.describe('Real 2-Browser Multiplayer Match Verification (P0-001, P0-002, P0
 
     // 7. Transition to DRAWING phase (P0-010, P0-011)
     // Host HUD displays secret word
-    const hostHUD = hostPage.locator('.font-mono.text-2xl');
+    const hostHUD = hostPage.getByTestId('hud-word');
     await expect(hostHUD).toContainText(chosenWord!, { timeout: 10000 });
 
     // Guest HUD displays masked word (never plaintext word!)
-    const guestHUD = guestPage.locator('.font-mono.text-2xl');
+    const guestHUD = guestPage.getByTestId('hud-word');
     await expect(guestHUD).toBeVisible({ timeout: 10000 });
     const guestMasked = await guestHUD.textContent();
     expect(guestMasked).not.toContain(chosenWord!);
