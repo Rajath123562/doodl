@@ -18,6 +18,7 @@ Read `START_HERE.md` and `prompts/00_MASTER_BUILD_PROMPT.md` before editing. Rea
 10. No publish, external sharing, new paid account or destructive action without user approval.
 11. For production, implement a privacy policy and operational procedures matching *actual* data processing, including reporting and deletion.
 12. Update docs and changelogs with code, keep decisions explicit; use versioned protocol and migrations.
+13. Apply the `unslop` design standard (quiet chrome, 4px grid, no purple/blue gradients or glowing blobs, sentence case, one bright element) to every UI and UX component.
 
 ## On every phase completion
 
