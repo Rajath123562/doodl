@@ -92,12 +92,12 @@ describe('RoomDO Authoritative Lifecycle & Security (P0-002, P0-004, P0-005, P0-
     allowSpectators: false,
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockState = createMockDOState();
     roomDO = new RoomDO(mockState as any, {} as any);
 
     // Initialize room with host
-    roomDO.fetch(
+    await roomDO.fetch(
       new Request('http://internal/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
