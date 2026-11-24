@@ -42,19 +42,6 @@ jobs:
         working-directory: app
         run: npx playwright install --with-deps chromium
 
-      - name: Start Local Worker Dev Server
-        working-directory: app
-        run: |
-          npx wrangler dev --port 8787 --ip 127.0.0.1 &
-          for i in $(seq 1 30); do
-            if curl -s http://127.0.0.1:8787 > /dev/null; then
-              echo "Wrangler dev server is ready!"
-              break
-            fi
-            echo "Waiting for wrangler dev server ($i/30)..."
-            sleep 1
-          done
-
       - name: Run Playwright Multi-Browser E2E Tests
         working-directory: app
         run: npm run test:e2e

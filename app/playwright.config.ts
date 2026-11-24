@@ -6,12 +6,18 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   timeout: 45000,
-  reporter: [['list']],
+  reporter: process.env.CI ? [['list'], ['github']] : [['list']],
   use: {
     baseURL: 'http://127.0.0.1:8787',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+  },
+  webServer: {
+    command: 'npx wrangler dev --port 8787 --ip 127.0.0.1',
+    url: 'http://127.0.0.1:8787',
+    reuseExistingServer: !process.env.CI,
+    timeout: 60000,
   },
   projects: [
     {
