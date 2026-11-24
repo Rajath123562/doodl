@@ -117,7 +117,7 @@ Check out the full [Quality Assurance Certification Suite](docs/QA/FINAL_PRODUCT
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/<your-username>/doodl.git
+git clone https://github.com/Rajath123562/doodl.git
 cd doodl/app
 ```
 
